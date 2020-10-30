@@ -1,0 +1,359 @@
+[
+  {
+    "id": "3b8d27fb.c4fc98",
+    "type": "tab",
+    "label": "Flow 5",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "f25ffd86.b624b8",
+    "type": "function",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Orbit MSG",
+    "func": "const TOKEN=env.get('ORBIT_TOKEN')\nconst url = 'https://app.orbit.love/questdb/activities?api_key=' + TOKEN\nvar orbit = {}\nif(msg.type == \"batch\") {\n    orbit = msg.payload.orbit\n} else if(msg.payload.action) {\n    orbit = {\n        \"title\": \"Auto-Star\",\n        \"description\": (msg.payload.action === 'deleted' ? \"UNStarred repository \" : \"Starred Repository \") + msg.payload.content.repository.name,\n        \"link\": msg.payload.content.repository.html_url,\n        \"score\": 2,\n        \"activity_type\": \"repository:star\",\n        \"occurred_at\": msg.payload.content.starred_at,\n\t    \"member\": {\n            \"github\": msg.payload.content.sender.login,\n            \"email\": \"\"\n\t    }\n    }\n} else {\n    \n    orbit = {\n        \"title\": (msg.payload.SlackAction.event_type == \"member_joined_channel\" ? \"Channel Joined\" : \"Left Channel\"),\n        \"description\": (msg.payload.SlackAction.event_type == \"member_joined_channel\" ? \"Joined Channel \" : \"Left Channel \") + msg.payload.SlackChannel.channel.name,\n        \"activity_type\": \"slack channel:\" + (msg.payload.SlackAction.event_type == \"member_joined_channel\" ? \"joined\" : \"left\"),\n        \"score\": 2,\n        \"member\": {\n            //\"bio\": msg.payload.user.profile.title,\n            \"email\":  (msg.payload.SlackUser.user.profile.email ? msg.payload.SlackUser.user.profile.email : ''),\n            \"name\": (msg.payload.SlackUser.user.profile.display_name ? msg.payload.SlackUser.user.profile.display_name : '')\n        }\n    }\n}\nvar headers = {}\n\nmsg.url = url\nmsg.payload = orbit\nmsg.headers = {}\nmsg.headers[\"Content-Type\"] = \"application/json\"\nmsg.headers[\"Accept\"] = \"application/json\"\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 1390,
+    "y": 80,
+    "wires": [
+      [
+        "262ff74e.ad9648"
+      ]
+    ]
+  },
+  {
+    "id": "262ff74e.ad9648",
+    "type": "http request",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Orbit",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": false,
+    "url": "",
+    "tls": "dfcc6f2.058499",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "x": 1550,
+    "y": 80,
+    "wires": [
+      [
+        "4f4609d5.710b8"
+      ]
+    ]
+  },
+  {
+    "id": "4f4609d5.710b8",
+    "type": "debug",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Orbit-out",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1740,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "9b655756.29ca78",
+    "type": "http in",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Slack",
+    "url": "/joiner",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 70,
+    "y": 80,
+    "wires": [
+      [
+        "fc97b99d.eccf7",
+        "aeff4700.269938",
+        "1a335740.e3e0d9"
+      ]
+    ]
+  },
+  {
+    "id": "fc97b99d.eccf7",
+    "type": "http response",
+    "z": "3b8d27fb.c4fc98",
+    "name": "",
+    "statusCode": "",
+    "headers": {},
+    "x": 230,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "aeff4700.269938",
+    "type": "function",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Slack MSG",
+    "func": "var url = 'https://slack.com/api/users.info'\nvar headers = {}\nvar newMsg = {}\nheaders[\"Content-Type\"] = \"application/x-www-form-urlencoded\"\nconst token = env.get('SLACK_USER_TOKEN')\nconst user = msg.payload.event.user\nurl += \"?token=\" + token\nurl += \"&user=\" + user\n// msg.payload.event.user\nnewMsg.url = url\nnewMsg.payload = {}\nnewMsg.payload.token = token\nnewMsg.payload.user = user\nnewMsg.payload.event_type = msg.payload.event.type\nnewMsg.headers=headers\nnewMsg.output = 1\nreturn newMsg;\n\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 250,
+    "y": 80,
+    "wires": [
+      [
+        "5cc0be.eedb5f44",
+        "568d7ac2.ddf1a4"
+      ]
+    ]
+  },
+  {
+    "id": "8269dfc3.73fea",
+    "type": "http request",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Query Slack User",
+    "method": "GET",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "dfcc6f2.058499",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "x": 670,
+    "y": 140,
+    "wires": [
+      [
+        "61b6e0fb.5c306"
+      ]
+    ]
+  },
+  {
+    "id": "61b6e0fb.5c306",
+    "type": "json",
+    "z": "3b8d27fb.c4fc98",
+    "name": "",
+    "property": "payload",
+    "action": "",
+    "pretty": false,
+    "x": 870,
+    "y": 140,
+    "wires": [
+      [
+        "3ae7b5e1.89c142"
+      ]
+    ]
+  },
+  {
+    "id": "5cc0be.eedb5f44",
+    "type": "switch",
+    "z": "3b8d27fb.c4fc98",
+    "name": "",
+    "property": "output",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "1",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "2",
+        "vt": "str"
+      }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 2,
+    "x": 470,
+    "y": 120,
+    "wires": [
+      [
+        "8269dfc3.73fea"
+      ],
+      [
+        "52a1841.dcb03fc"
+      ]
+    ]
+  },
+  {
+    "id": "1a335740.e3e0d9",
+    "type": "function",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Slack Channel",
+    "func": "var url = 'https://slack.com/api/conversations.info'\nvar headers = {}\nvar newMsg = {}\nheaders[\"Content-Type\"] = \"application/x-www-form-urlencoded\"\nconst token = env.get('SLACK_USER_TOKEN')\nconst user = msg.payload.event.user\nurl += \"?token=\" + token\nurl += \"&channel=\" + msg.payload.event.channel\nnewMsg.url = url\nnewMsg.payload = {}\nnewMsg.payload.token = token\nnewMsg.payload.user = user\nnewMsg.payload.event_type =  msg.payload.event.type\nnewMsg.headers=headers\nnewMsg.output = 2\nreturn newMsg;\n\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 260,
+    "y": 120,
+    "wires": [
+      [
+        "5cc0be.eedb5f44"
+      ]
+    ]
+  },
+  {
+    "id": "52a1841.dcb03fc",
+    "type": "http request",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Query Slack Channel",
+    "method": "GET",
+    "ret": "txt",
+    "paytoqs": false,
+    "url": "",
+    "tls": "dfcc6f2.058499",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "x": 680,
+    "y": 180,
+    "wires": [
+      [
+        "3cf95246.25b3e6"
+      ]
+    ]
+  },
+  {
+    "id": "3cf95246.25b3e6",
+    "type": "json",
+    "z": "3b8d27fb.c4fc98",
+    "name": "",
+    "property": "payload",
+    "action": "",
+    "pretty": false,
+    "x": 870,
+    "y": 180,
+    "wires": [
+      [
+        "fe6f0582.ef0e6"
+      ]
+    ]
+  },
+  {
+    "id": "568d7ac2.ddf1a4",
+    "type": "change",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Action",
+    "rules": [
+      {
+        "t": "set",
+        "p": "topic",
+        "pt": "msg",
+        "to": "SlackAction",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 470,
+    "y": 80,
+    "wires": [
+      [
+        "b98ddb36.e9f798"
+      ]
+    ]
+  },
+  {
+    "id": "3ae7b5e1.89c142",
+    "type": "change",
+    "z": "3b8d27fb.c4fc98",
+    "name": "User",
+    "rules": [
+      {
+        "t": "set",
+        "p": "topic",
+        "pt": "msg",
+        "to": "SlackUser",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1010,
+    "y": 140,
+    "wires": [
+      [
+        "b98ddb36.e9f798"
+      ]
+    ]
+  },
+  {
+    "id": "fe6f0582.ef0e6",
+    "type": "change",
+    "z": "3b8d27fb.c4fc98",
+    "name": "Channel",
+    "rules": [
+      {
+        "t": "set",
+        "p": "topic",
+        "pt": "msg",
+        "to": "SlackChannel",
+        "tot": "str"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 1020,
+    "y": 180,
+    "wires": [
+      [
+        "b98ddb36.e9f798"
+      ]
+    ]
+  },
+  {
+    "id": "b98ddb36.e9f798",
+    "type": "join",
+    "z": "3b8d27fb.c4fc98",
+    "name": "",
+    "mode": "custom",
+    "build": "object",
+    "property": "payload",
+    "propertyType": "msg",
+    "key": "topic",
+    "joiner": "\\n",
+    "joinerType": "str",
+    "accumulate": false,
+    "timeout": "",
+    "count": "3",
+    "reduceRight": false,
+    "reduceExp": "",
+    "reduceInit": "",
+    "reduceInitType": "",
+    "reduceFixup": "",
+    "x": 1230,
+    "y": 80,
+    "wires": [
+      [
+        "f25ffd86.b624b8"
+      ]
+    ]
+  },
+  {
+    "id": "dfcc6f2.058499",
+    "type": "tls-config",
+    "z": "",
+    "name": "",
+    "cert": "",
+    "key": "",
+    "ca": "",
+    "certname": "",
+    "keyname": "",
+    "caname": "",
+    "verifyservercert": false
+  }
+]

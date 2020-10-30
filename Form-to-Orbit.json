@@ -1,0 +1,222 @@
+[
+  {
+    "id": "3b5c2eeb.3a10ba",
+    "type": "tab",
+    "label": "Flow 2",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "dc03f17b.044e",
+    "type": "http in",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "Form Endpoint",
+    "url": "/email-form",
+    "method": "post",
+    "upload": true,
+    "swaggerDoc": "",
+    "x": 100,
+    "y": 140,
+    "wires": [
+      [
+        "6434980f.08f068",
+        "98d151b5.1aa838"
+      ]
+    ]
+  },
+  {
+    "id": "6434980f.08f068",
+    "type": "http response",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "Response",
+    "statusCode": "200",
+    "headers": {},
+    "x": 320,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "98d151b5.1aa838",
+    "type": "function",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "Process Form",
+    "func": "const TOKEN=env.get('ORBIT_TOKEN')\nconst url = 'https://app.orbit.love/questdb/members?api_key=' + TOKEN\nvar orbiter = \"\"\nif(msg.payload.form_response.hasOwnProperty(\"hidden\")){\n    if(msg.payload.form_response.hidden.hasOwnProperty(\"orbiter\")){\n        orbiter = msg.payload.form_response.hidden.orbiter\n    }\n}\nconst lookupurl = \"https://app.orbit.love/questdb/members/\" + orbiter +  \"/notes?api_key=\" + TOKEN\nvar newMsg = {}\n//const oldPayload = msg.payload\nvar orbit = {}\nvar answers = msg.payload.form_response.answers\nvar l = answers.length\nvar ans = {}\nif(msg.payload.form_response.hasOwnProperty(\"hidden\")){\n    if(msg.payload.form_response.hidden.hasOwnProperty(\"email\")){\n        ans[\"email\"] = msg.payload.form_response.hidden.email\n    }\n    if(msg.payload.form_response.hidden.hasOwnProperty(\"fullname\")){\n        ans[\"name\"] = msg.payload.form_response.hidden.fullname\n    }\n    if(msg.payload.form_response.hidden.hasOwnProperty(\"orbiter\")){\n        ans[\"orbitID\"] = msg.payload.form_response.hidden.orbiter\n    }\n}\n    \nfor(z = 0; z < l; z++){\n    var f = \"\"\n    n = answers[z].field.ref\n    if(answers[z].hasOwnProperty(\"choice\")){\n        f = answers[z].choice.label\n    } else if(answers[z].hasOwnProperty(\"choices\")){\n        for(c=0;c<answers[z].choices.labels.length;c++){\n            f += \" \" + answers[z].choices.labels[c]\n        }\n        f = f.trim()\n        f = f.replace(\" \", \",\")\n    } else if(answers[z].hasOwnProperty(\"email\")) {\n        if(answers[z].email !== \"\"){\n            n = \"email\"\n            f = answers[z].email\n        }\n    } else if(answers[z].hasOwnProperty(\"boolean\")){\n        f = answers[z].boolean ? \"true\" : false\n    } else {\n        f = answers[z].text\n    }\n    ans[n] = f\n}\nif (ans.hasOwnProperty(\"ofage\")){\n    if(ans.ofage == \"false\"){\n        console.log(\"underage! \")\n        return null\n    }\n}\n\nvar ship = \"\"\nvar note = \"\"\nif(ans.hasOwnProperty(\"bestThings\")){\n    note = \"**Best Features:** \" + ans.bestThings + \"\\n\"\n}\nif(ans.hasOwnProperty(\"worstThings\")){\n    note += \"**Needed Features:** \" + ans.worstThings + \"\\n\"\n}\nif(ans.hasOwnProperty(\"address\")){\n    ship += ans.address\n    ship += \"\\n\"\n    ship += ans.city + \", \"\n    if(ans.hasOwnProperty(\"state\")){\n        ship += ans.state + \" \" + ans.zipcode\n    } else {\n        ship += ans.province + \", \" + ans.postalcode\n    }\n    ship += \"\\n\" + ans.country.split(\":\")[0]\n}\ntags = \"\"\nif(ans.interests == \"Please Remove Me\"){\n    tags = \"DO NOT CONTACT\"\n} else {\n    tags = ans.interests == \"Both!\" ? \"Send: SWAG and Merchandise, Send: News and Updates\" : \"Send: \" + ans.interests\n}\nif(ans.hasOwnProperty(\"source\")){\n    tags += \", feedback-\" + ans.source\n}\nif(ans.feedback == \"true\"){\n    tags += \", gives-feedback\"\n} else {\n    tags +' \", no-feedback'\n}\nif(note !== \"\"){\n    tags += \", feedback-submitted\"\n}\n\norbit = {\n \"title\": \"Subscriber\",\n \"description\": ans.interests,\n \"score\": 2,\n \"activity_type\": \"question:response\",\n \"occurred_at\": msg.payload.form_response.submitted_at,\n \"member\": {\n    \"name\" :  ans.hasOwnProperty(\"name\") ? ans.name : \"\",\n    \"github\": ans.hasOwnProperty(\"github\") ? ans.github : \"\",\n    \"email\": ans.hasOwnProperty(\"email\") ? ans.email : \"\",\n    \"pronouns\": ans.hasOwnProperty(\"pronouns\") ? ans.pronouns : \"\",\n    \"tshirt\": ans.hasOwnProperty(\"tshirt\") ? ans.tshirt : \"\",\n    \"shipping_address\": ship,\n    \"tags_to_add\": tags\n    },\n\t    \n}\n// } \nvar headers = {}\n\nnewMsg.url = url\nnewMsg.payload = orbit\nnewMsg.payload.orbiter = orbiter\nnewMsg.headers = {}\nnewMsg.headers[\"Content-Type\"] = \"application/json\"\nnewMsg.headers[\"Accept\"] = \"application/json\"\nnewMsg.payload.note = note\nnewMsg.payload.last_url = url\nnewMsg.topic = \"FormData\"\nnewMsg.lookup = lookupurl\n//newMsg.answers = answers\n//newMsg.l = l\n//newMsg.ans = ans\nreturn newMsg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 340,
+    "y": 140,
+    "wires": [
+      [
+        "e1f58268.cb9628",
+        "261f82dc.0bf16e"
+      ]
+    ]
+  },
+  {
+    "id": "e1f58268.cb9628",
+    "type": "http request",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "Update Orbit",
+    "method": "POST",
+    "ret": "obj",
+    "paytoqs": false,
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "x": 630,
+    "y": 140,
+    "wires": [
+      [
+        "a5dbd18f.4232b",
+        "b0233296.dc217"
+      ]
+    ]
+  },
+  {
+    "id": "a5dbd18f.4232b",
+    "type": "debug",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 1650,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "9c6943ab.aa0f",
+    "type": "debug",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 1650,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "19dc591.a952ea7",
+    "type": "http request",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "Orbit Note",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": false,
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "x": 1430,
+    "y": 300,
+    "wires": [
+      [
+        "1bb4533a.f9d81d"
+      ]
+    ]
+  },
+  {
+    "id": "1bb4533a.f9d81d",
+    "type": "debug",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 1650,
+    "y": 300,
+    "wires": []
+  },
+  {
+    "id": "b916f29b.bd33a",
+    "type": "debug",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 1650,
+    "y": 240,
+    "wires": []
+  },
+  {
+    "id": "261f82dc.0bf16e",
+    "type": "join",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "",
+    "mode": "custom",
+    "build": "object",
+    "property": "payload",
+    "propertyType": "msg",
+    "key": "topic",
+    "joiner": "\\n",
+    "joinerType": "str",
+    "accumulate": false,
+    "timeout": "",
+    "count": "2",
+    "reduceRight": false,
+    "reduceExp": "",
+    "reduceInit": "",
+    "reduceInitType": "",
+    "reduceFixup": "",
+    "x": 1030,
+    "y": 240,
+    "wires": [
+      [
+        "b916f29b.bd33a",
+        "2330cc18.410a04"
+      ]
+    ]
+  },
+  {
+    "id": "b0233296.dc217",
+    "type": "function",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "gather OrbitID",
+    "func": "var newMsg = {}\nnewMsg.topic = msg.payload.data\nnewMsg.headers = {}\nnewMsg.headers[\"Content-Type\"] = \"application/json\"\nnewMsg.headers[\"Accept\"] = \"application/json\"\nnewMsg.payload = msg.payload\nnewMsg.topic = \"OrbitUser\"\nreturn newMsg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 840,
+    "y": 180,
+    "wires": [
+      [
+        "9c6943ab.aa0f",
+        "261f82dc.0bf16e"
+      ]
+    ]
+  },
+  {
+    "id": "2330cc18.410a04",
+    "type": "function",
+    "z": "3b5c2eeb.3a10ba",
+    "name": "Format Notes",
+    "func": "const TOKEN=env.get('ORBIT_TOKEN')\n\nconst lookupurl = \"https://app.orbit.love/questdb/members/\" + msg.payload.OrbitUser.data.id +  \"/notes?api_key=\" + TOKEN\n// var newMsg = {}\n// newMsg.headers[\"Content-Type\"] = \"application/json\"\n// newMsg.headers[\"Accept\"] = \"application/json\"\n// newMsg.url = lookupurl\nvar notes = msg.payload.FormData.note.split(\"\\n\")\nfor(x = 0; x< notes.length;x++){\n    \n    if(notes[x] !== \"\"){\n        var nm = {}\n    nm.payload = {}\n    nm.payload.body = notes[x]\n    nm.headers = {}\n    nm.headers[\"Content-Type\"] = \"application/json\"\n    nm.headers[\"Accept\"] = \"application/json\"\n    nm.url = lookupurl\n    node.send(nm)\n    }\n}\n\n",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 1200,
+    "y": 300,
+    "wires": [
+      [
+        "19dc591.a952ea7"
+      ]
+    ]
+  }
+]

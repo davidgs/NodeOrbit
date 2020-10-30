@@ -1,0 +1,220 @@
+[
+  {
+    "id": "f319d917.9f76a",
+    "type": "tab",
+    "label": "Flow 6",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "12e0d74f.797679",
+    "type": "http response",
+    "z": "f319d917.9f76a",
+    "name": "Stars response",
+    "statusCode": "200",
+    "headers": {},
+    "x": 260,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "7dfbaa22.44475c",
+    "type": "function",
+    "z": "f319d917.9f76a",
+    "name": "verify",
+    "func": "const TOKEN = env.get('HASH_TOKEN')\nconst crypto = global.get('cryptojs')\nnewMsg = {}\n\nvar hash = \"sha1=\" + crypto.HmacSHA1(JSON.stringify(msg.req.body), TOKEN).toString(crypto.enc.Hex);\nif(hash === msg.req.headers['x-hub-signature']){\n    newMsg.vrfy = true\n} else {\n    newMsg.vrfy = false\n}\n\nnewMsg.payload = {}\nif(msg.payload.action == \"created\"){\n    newMsg.text = \":tada: A new :star: for \" + msg.payload.repository.name + \" from user \" + msg.payload.sender.login + \"! :confetti_ball:\"\n} else {\n    newMsg.text = \":x: \" + msg.payload.sender.login + \" deleted their :star: from \" + msg.payload.repository.name + \" :cry:\"\n}\n// newMsg.sum = sum\nnewMsg.hashSum = hash\nnewMsg.payload.text = newMsg.text\nnewMsg.payload.user = msg.payload.sender.login\nnewMsg.payload.action = msg.payload.action\nnewMsg.payload.content = msg.payload\nreturn newMsg;\n",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 230,
+    "y": 160,
+    "wires": [
+      [
+        "a368b5e4.ed8808"
+      ]
+    ]
+  },
+  {
+    "id": "da4ee081.4ce288",
+    "type": "http request",
+    "z": "f319d917.9f76a",
+    "name": "Slack",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "dfcc6f2.058499",
+    "persist": false,
+    "proxy": "",
+    "authType": "bearer",
+    "x": 910,
+    "y": 120,
+    "wires": [
+      [
+        "7b0c0ea9.ed4888"
+      ]
+    ]
+  },
+  {
+    "id": "b1dfa30f.e08bc",
+    "type": "debug",
+    "z": "f319d917.9f76a",
+    "name": "Rejected",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 1100,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "c5ddc2ff.817698",
+    "type": "http in",
+    "z": "f319d917.9f76a",
+    "name": "stars",
+    "url": "/stars",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 90,
+    "y": 160,
+    "wires": [
+      [
+        "7dfbaa22.44475c",
+        "12e0d74f.797679"
+      ]
+    ]
+  },
+  {
+    "id": "a368b5e4.ed8808",
+    "type": "switch",
+    "z": "f319d917.9f76a",
+    "name": "Verified",
+    "property": "vrfy",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "false"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 2,
+    "x": 420,
+    "y": 160,
+    "wires": [
+      [
+        "b4f5597b.7dfb28",
+        "59681785.bd624"
+      ],
+      [
+        "b1dfa30f.e08bc"
+      ]
+    ]
+  },
+  {
+    "id": "b4f5597b.7dfb28",
+    "type": "function",
+    "z": "f319d917.9f76a",
+    "name": "Orbit MSG",
+    "func": "const TOKEN=env.get('ORBIT_TOKEN')\nconst url = 'https://app.orbit.love/questdb/activities?api_key=' + TOKEN\nvar orbit = {}\nif(msg.type == \"batch\") {\n    orbit = msg.payload.orbit\n} else if(msg.payload.action) {\n    orbit = {\n        \"title\": \"Auto-Star\",\n        \"description\": (msg.payload.action === 'deleted' ? \"UNStarred repository \" : \"Starred Repository \") + msg.payload.content.repository.name,\n        \"link\": msg.payload.content.repository.html_url,\n        \"score\": 2,\n        \"activity_type\": \"repository:star\",\n        \"occurred_at\": msg.payload.content.starred_at,\n\t    \"member\": {\n            \"github\": msg.payload.content.sender.login,\n            \"email\": \"\"\n\t    }\n    }\n} else {\n    \n    orbit = {\n        \"title\": (msg.payload.SlackAction.event_type == \"member_joined_channel\" ? \"Channel Joined\" : \"Left Channel\"),\n        \"description\": (msg.payload.SlackAction.event_type == \"member_joined_channel\" ? \"Joined Channel \" : \"Left Channel \") + msg.payload.SlackChannel.channel.name,\n        \"activity_type\": \"slack channel:\" + (msg.payload.SlackAction.event_type == \"member_joined_channel\" ? \"joined\" : \"left\"),\n        \"score\": 2,\n        \"member\": {\n            //\"bio\": msg.payload.user.profile.title,\n            \"email\":  (msg.payload.SlackUser.user.profile.email ? msg.payload.SlackUser.user.profile.email : ''),\n            \"name\": (msg.payload.SlackUser.user.profile.display_name ? msg.payload.SlackUser.user.profile.display_name : '')\n        }\n    }\n}\nvar headers = {}\n\nmsg.url = url\nmsg.payload = orbit\nmsg.headers = {}\nmsg.headers[\"Content-Type\"] = \"application/json\"\nmsg.headers[\"Accept\"] = \"application/json\"\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 710,
+    "y": 160,
+    "wires": [
+      [
+        "8e569cee.bb8dd"
+      ]
+    ]
+  },
+  {
+    "id": "8e569cee.bb8dd",
+    "type": "http request",
+    "z": "f319d917.9f76a",
+    "name": "Orbit",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": false,
+    "url": "",
+    "tls": "dfcc6f2.058499",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "x": 910,
+    "y": 160,
+    "wires": [
+      [
+        "3264ba5f.5f32d6"
+      ]
+    ]
+  },
+  {
+    "id": "3264ba5f.5f32d6",
+    "type": "debug",
+    "z": "f319d917.9f76a",
+    "name": "Orbit-out",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1100,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "7b0c0ea9.ed4888",
+    "type": "debug",
+    "z": "f319d917.9f76a",
+    "name": "Slack-out",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1100,
+    "y": 120,
+    "wires": []
+  },
+  {
+    "id": "59681785.bd624",
+    "type": "function",
+    "z": "f319d917.9f76a",
+    "name": "Slack MSG",
+    "func": "const ENDPOINT=env.get('SLACK_TOKEN');\nconst url = \"https://hooks.slack.com/services/\" + ENDPOINT\nmsg.url = url\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "x": 710,
+    "y": 120,
+    "wires": [
+      [
+        "da4ee081.4ce288"
+      ]
+    ]
+  },
+  {
+    "id": "dfcc6f2.058499",
+    "type": "tls-config",
+    "z": "",
+    "name": "",
+    "cert": "",
+    "key": "",
+    "ca": "",
+    "certname": "",
+    "keyname": "",
+    "caname": "",
+    "verifyservercert": false
+  }
+]
